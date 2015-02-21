@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <meta name="description" content="Pml peer assessment : ">
+
+    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
+
+    <title>Pml peer assessment</title>
+  </head>
+
+  <body>
+
+    <!-- HEADER -->
+    <div id="header_wrap" class="outer">
+        <header class="inner">
+          <a id="forkme_banner" href="https://github.com/mimoidochi/pml_peer_assessment">View on GitHub</a>
+
+          <h1 id="project_title">Pml peer assessment</h1>
+          <h2 id="project_tagline"></h2>
+
+            <section id="downloads">
+              <a class="zip_download_link" href="https://github.com/mimoidochi/pml_peer_assessment/zipball/master">Download this project as a .zip file</a>
+              <a class="tar_download_link" href="https://github.com/mimoidochi/pml_peer_assessment/tarball/master">Download this project as a tar.gz file</a>
+            </section>
+        </header>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div id="main_content_wrap" class="outer">
+      <section id="main_content" class="inner">
+        <p></p>
+
+<p></p>
+
+<p>
+
+</p>
+
+<p></p>Exercise Quality Classification
+
+
+
+<p>
+
+</p>
+
+
+
+code{white-space: pre;}
+
+<p></p>
+
+
+
+
+  pre:not([class]) {
+    background-color: white;
+  }
+
+
+
+
+<p></p>
+
+<p></p>
+
+
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+
+<div>
+
+
+<div id="header">
+<h1>
+<a id="exercise-quality-classification" class="anchor" href="#exercise-quality-classification" aria-hidden="true"><span class="octicon octicon-link"></span></a>Exercise Quality Classification</h1>
+<h4>
+<a id="friday-february-20-2015" class="anchor" href="#friday-february-20-2015" aria-hidden="true"><span class="octicon octicon-link"></span></a><em>Friday, February 20, 2015</em>
+</h4>
+</div>
+
+<div id="summary">
+<h2>
+<a id="summary" class="anchor" href="#summary" aria-hidden="true"><span class="octicon octicon-link"></span></a>Summary</h2>
+<p>The present analysis use a data collected from four sensors attached to arm, forearm, belt and dumbbell of 6 volunteers while they were executed certain exercises (weight lifting). Each volunteer has performed one set of 10 repetitions of the Unilateral Dumbbell Biceps Curl in five different fashions: one in a correct way and four with different common mistakes. The goal of this analysis is to build a model to predict a manner in which these exercises were performed. The data are already divided into training and testing sets. We decided to use Random Forests, which showed a good results.</p>
+</div>
+
+<div id="reading-and-cleaning-data">
+<h2>
+<a id="reading-and-cleaning-data" class="anchor" href="#reading-and-cleaning-data" aria-hidden="true"><span class="octicon octicon-link"></span></a>Reading and cleaning data</h2>
+<p>As the data we have are already splitted in training and testing data sets, the first step is just reading this data sets.</p>
+<pre><code>training &lt;- read.csv("pml-training.csv", na.strings = c("", " ", "NA"))
+testing &lt;- read.csv("pml-testing.csv", na.strings = c("", " ", "NA"))</code></pre>
+<p>Training and testing data contains 19622 and 20 observations correspondingly. Each data set is a table containing 160 columns. The last column in the training data set is a “classe” value, that marks the manner in wich the exercise was performed (A, B, C, D or E). The testing data set lacks this variable, having instead the “problem_id” identificator.</p>
+<p>We have noticed that the first 7 columns of the data sets are just identificators and timestamps, and therefore cannot be used as predictors for the questioned classification problem. So, we took them off.</p>
+<pre><code>training &lt;- training[, -c(1:7)]
+testing &lt;- testing[, -c(1:7)]</code></pre>
+<p>Let’s take a closer look at the data.</p>
+<pre><code>head(colSums(is.na(training)))</code></pre>
+<pre><code>##           roll_belt          pitch_belt            yaw_belt 
+##                   0                   0                   0 
+##    total_accel_belt  kurtosis_roll_belt kurtosis_picth_belt 
+##                   0               19216               19216</code></pre>
+<pre><code>levels(as.factor(colSums(is.na(training))))</code></pre>
+<pre><code>## [1] "0"     "19216"</code></pre>
+<p>We can see that 19216 (98%) observations in the training set don’t have values for certain columns. These columns, therefore, cannot be predictors. We can take them off as well.</p>
+<pre><code>badColumns &lt;- names(training[, colSums(is.na(training)) == 19216])
+
+training &lt;- training[, !colnames(training) %in% badColumns]
+testing &lt;- testing[, !colnames(testing) %in% badColumns]</code></pre>
+<p>Note that all trasformation apllied to training set must be applied to testing set as well in order to maintain consistency of data.</p>
+</div>
+
+<div id="building-a-prediction-model">
+<h2>
+<a id="building-a-prediction-model" class="anchor" href="#building-a-prediction-model" aria-hidden="true"><span class="octicon octicon-link"></span></a>Building a prediction model</h2>
+<p>As a prediction method we choose <a href="https://www.stat.berkeley.edu/~breiman/RandomForests/cc_home.htm">Random Forests</a>. R package <em>randomForest</em> provide convenient framework to use this method.</p>
+<pre><code>model &lt;- randomForest(classe ~ ., training)</code></pre>
+</div>
+
+<div id="error-estimation">
+<h2>
+<a id="error-estimation" class="anchor" href="#error-estimation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Error estimation</h2>
+<pre><code>model</code></pre>
+<pre><code>## 
+## Call:
+##  randomForest(formula = classe ~ ., data = training) 
+##                Type of random forest: classification
+##                      Number of trees: 500
+## No. of variables tried at each split: 7
+## 
+##         OOB estimate of  error rate: 0.29%
+## Confusion matrix:
+##      A    B    C    D    E  class.error
+## A 5577    2    0    0    1 0.0005376344
+## B    9 3785    3    0    0 0.0031603898
+## C    0   10 3410    2    0 0.0035067212
+## D    0    0   22 3192    2 0.0074626866
+## E    0    0    0    5 3602 0.0013861935</code></pre>
+<p>As we have choosen the random forests as the prediction method, we don’t have to cross-validate the result in usual manner because the sample error is estimated internally, during the run of the method. This estimate is called <a href="https://www.stat.berkeley.edu/~breiman/RandomForests/cc_home.htm#ooberr">oob</a> (out-of-bag). In this case the oob estimate of sample error is about 0.3%</p>
+</div>
+
+<div id="prediction">
+<h2>
+<a id="prediction" class="anchor" href="#prediction" aria-hidden="true"><span class="octicon octicon-link"></span></a>Prediction</h2>
+<pre><code>predict(model, testing)</code></pre>
+<pre><code>##  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 
+##  B  A  B  A  A  E  D  B  A  A  B  C  B  A  E  E  A  B  B  B 
+## Levels: A B C D E</code></pre>
+<p>All these answers are correct.</p>
+</div>
+
+<p></p>
+</div>
+
+
+
+
+
+
+
+<p>
+</p>
+      </section>
+    </div>
+
+    <!-- FOOTER  -->
+    <div id="footer_wrap" class="outer">
+      <footer class="inner">
+        <p class="copyright">Pml peer assessment maintained by <a href="https://github.com/mimoidochi">mimoidochi</a></p>
+        <p>Published with <a href="http://pages.github.com">GitHub Pages</a></p>
+      </footer>
+    </div>
+
+    
+
+  </body>
+</html>
