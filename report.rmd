@@ -1,0 +1,75 @@
+---
+title: "Exercise Quality Classification"
+date: "Friday, February 20, 2015"
+output: html_document
+---
+
+##Summary
+
+The present analysis use a data collected from four sensors attached to arm, forearm, belt and dumbbell of 6 volunteers while they were executed certain exercises (weight lifting). Each volunteer has performed one set of 10 repetitions of the Unilateral Dumbbell Biceps Curl in five different fashions: one in a correct way and four with different common mistakes. The goal of this analysis is to build a model to predict a manner in which these exercises were performed. The data are already divided into training and testing sets. We decided to use Random Forests, which showed a good results. 
+
+##Reading and cleaning data
+
+```{r, echo=FALSE, results='hide', message=FALSE}
+library(caret)
+library(randomForest)
+```
+
+As the data we have are already splitted in training and testing data sets, the first step is just reading this data sets.
+
+```{r}
+training <- read.csv("pml-training.csv", na.strings = c("", " ", "NA"))
+testing <- read.csv("pml-testing.csv", na.strings = c("", " ", "NA"))
+```
+
+Training and testing data contains 19622 and 20 observations correspondingly. Each data set is a table containing 160 columns. The last column in the training data set is a "classe" value, that marks the manner in wich the exercise was performed (A, B, C, D or E). The testing data set lacks this variable, having instead the "problem_id" identificator.
+
+We have noticed that the first 7 columns of the data sets are just identificators and timestamps, and therefore cannot be used as predictors for the questioned classification problem. So, we took them off.
+
+```{r}
+training <- training[, -c(1:7)]
+testing <- testing[, -c(1:7)]
+```
+
+Let's take a closer look at the data.
+
+```{r}
+head(colSums(is.na(training)))
+levels(as.factor(colSums(is.na(training))))
+```
+
+We can see that 19216 (98%) observations in the training set don't have values for certain columns. These columns, therefore, cannot be predictors. We can take them off as well.
+
+```{r}
+badColumns <- names(training[, colSums(is.na(training)) == 19216])
+
+training <- training[, !colnames(training) %in% badColumns]
+testing <- testing[, !colnames(testing) %in% badColumns]
+```
+
+Note that all trasformation apllied to training set must be applied to testing set as well in order to maintain consistency of data.
+
+##Building a prediction model
+
+As a prediction method we choose [Random Forests](https://www.stat.berkeley.edu/~breiman/RandomForests/cc_home.htm). R package _randomForest_ provide convenient framework to use this method.
+
+```{r}
+model <- randomForest(classe ~ ., training)
+```
+
+##Error estimation
+
+```{r}
+model
+```
+
+As we have choosen the random forests as the prediction method, we don't have to cross-validate the result in usual manner because the sample error is estimated internally, during the run of the method. This estimate is called [oob](https://www.stat.berkeley.edu/~breiman/RandomForests/cc_home.htm#ooberr) (out-of-bag). In this case the oob estimate of sample error is about 0.3%
+
+##Prediction
+
+```{r}
+predict(model, testing)
+```
+
+All these answers are correct. 
+
